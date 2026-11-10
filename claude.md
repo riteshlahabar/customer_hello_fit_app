@@ -1,9 +1,9 @@
 # HelloFit customer app (Flutter) — see `../claude.md`
 
-**Project instructions live in `../claude.md` (a short index) and `../docs/`. Read those.**
+**Project instructions live in `../claude.md` (a short index) and `../state/`. Read those.**
 
-Most relevant here: `../docs/frontend-state.md`, `../docs/frontend-conventions.md`
-(conventions + design tokens), `../docs/working-order.md`, `../docs/commands.md`.
+Most relevant here: `../state/frontend-state.md`, `../state/frontend-conventions.md`
+(conventions + design tokens), `../state/working-order.md`, `../state/commands.md`.
 
 This file deliberately holds no instructions of its own — it used to be a full copy of the
 root file and silently went stale. Claude Code loads the *nearest* `claude.md`, so a
@@ -21,4 +21,4 @@ The one rule that matters most here, repeated because this is the directory it g
 the old dual-shell code and the "Continue as" chooser — leftover, not the target.
 `pubspec.yaml`, the `.iml` and `README.md` still carry the old package name.
 
-Day-to-day history is in `../worklog/`. Read the latest entry before trusting `../docs/`.
+Day-to-day history is in `../worklog/`. Read the latest entry before trusting `../state/`.

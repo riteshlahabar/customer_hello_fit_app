@@ -23,4 +23,4 @@ flutter analyze
 flutter test
 ```
 
-Project instructions: `../claude.md` (index) and `../docs/`. History: `../worklog/`.
+Project instructions: `../claude.md` (index) and `../state/`. History: `../worklog/`.
