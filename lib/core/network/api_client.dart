@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../storage/token_store.dart';
 import 'api_result.dart';
+import 'network_errors.dart';
 
 /// Single Dio instance with the interceptors every request needs: bearer
 /// token, one-shot refresh rotation on 401, and envelope-aware error mapping.
@@ -89,6 +90,22 @@ class ApiClient {
   }) =>
       _send(() => _dio.patch(path, data: body), parse);
 
+  /// A replace, not a patch — notification preferences are the one PUT the
+  /// customer surface has.
+  Future<ApiResult<T>> put<T>(
+    String path, {
+    Object? body,
+    T Function(dynamic data)? parse,
+  }) =>
+      _send(() => _dio.put(path, data: body), parse);
+
+  Future<ApiResult<T>> delete<T>(
+    String path, {
+    Object? body,
+    T Function(dynamic data)? parse,
+  }) =>
+      _send(() => _dio.delete(path, data: body), parse);
+
   /// Runs the request, retries once after a successful token refresh, and
   /// converts whatever comes back into an ApiResult.
   Future<ApiResult<T>> _send<T>(
@@ -143,14 +160,7 @@ class ApiClient {
     } on DioException catch (e) {
       return ApiFailure<T>(
         code: ApiErrorCode.network,
-        message: switch (e.type) {
-          DioExceptionType.connectionTimeout ||
-          DioExceptionType.receiveTimeout =>
-            'The server took too long to respond.',
-          DioExceptionType.connectionError =>
-            'No connection. Check your network and try again.',
-          _ => 'Network error. Please try again.',
-        },
+        message: networkMessageFor(e.type),
       );
     }
   }

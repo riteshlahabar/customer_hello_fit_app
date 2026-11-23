@@ -109,7 +109,7 @@ class DeviceInfo {
   Map<String, dynamic> toJson() => {
         'platform': platform,
         'deviceId': deviceId,
-        if (fcmToken != null) 'fcmToken': fcmToken,
-        if (appVersion != null) 'appVersion': appVersion,
+        'fcmToken': ?fcmToken,
+        'appVersion': ?appVersion,
       };
 }
