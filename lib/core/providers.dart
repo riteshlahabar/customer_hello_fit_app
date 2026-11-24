@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/auth/auth_restore.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/billing/data/billing_repository.dart';
 import '../features/booking/data/booking_repository.dart';
@@ -12,6 +13,7 @@ import '../features/providers/data/provider_repository.dart';
 import '../features/reviews/data/review_repository.dart';
 import '../features/serviceability/data/serviceability_repository.dart';
 import 'network/api_client.dart';
+import 'storage/onboarding_store.dart';
 import 'storage/token_store.dart';
 
 /// Composition root. Everything is overridable in tests, which is why nothing
@@ -21,6 +23,11 @@ import 'storage/token_store.dart';
 /// that already exists. **No screen state lives here** — controllers come with
 /// the designs; these are the data layer and nothing else.
 final tokenStoreProvider = Provider<TokenStore>((ref) => TokenStore());
+
+/// Whether the onboarding slides have been seen. Separate from the token
+/// store so signing out does not replay them.
+final onboardingStoreProvider =
+    Provider<OnboardingStore>((ref) => OnboardingStore());
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(tokenStore: ref.watch(tokenStoreProvider));
@@ -36,6 +43,16 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 /// §3.2 profile, §3.3 addresses.
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepository(api: ref.watch(apiClientProvider));
+});
+
+/// Decides the first screen on launch and keeps a stored session alive, so a
+/// signed-in customer is never asked for a second OTP.
+final sessionRestorerProvider = Provider<SessionRestorer>((ref) {
+  return SessionRestorer(
+    tokens: ref.watch(tokenStoreProvider),
+    onboarding: ref.watch(onboardingStoreProvider),
+    profiles: ref.watch(profileRepositoryProvider),
+  );
 });
 
 /// §3.4 categories, services, packages, add-ons.

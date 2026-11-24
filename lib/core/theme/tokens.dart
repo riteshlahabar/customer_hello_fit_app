@@ -20,6 +20,36 @@ abstract final class HFColors {
   static const statusComplete = success;
   static const statusCancelled = Color(0xFFFDECEA);
   static const statusPending = Color(0xFFFFF4D6);
+
+  // --- Values read off the client's supplied HTML screens. Each one is in
+  // the designs; none is invented. ---
+
+  /// `--taupe`, declared on every screen from page 02 onwards.
+  static const taupe = Color(0xFFC1B19E);
+
+  /// The splash screen's near-black ground (page 01 `body`).
+  static const splashBackground = Color(0xFF090909);
+
+  /// Input outline at rest (`.field` border).
+  static const fieldBorder = Color(0xFFE8E3DE);
+
+  /// Body copy inside a card (`.desc`); lighter than [muted].
+  static const bodyMuted = Color(0xFF6C655D);
+
+  /// Field labels and feature captions (`.field-label`, `.feature`).
+  static const labelInk = Color(0xFF37332F);
+
+  /// Secondary lines — hints, "or", placeholder text.
+  static const softMuted = Color(0xFF8A827B);
+  static const faintMuted = Color(0xFFAAAAAA);
+
+  /// Inactive page dot (`.dots i`).
+  static const dotInactive = Color(0xFFD9CEC3);
+
+  /// Tinted wash behind a feature tick (`.check`) and the OTP page's icon
+  /// panel (`.icon-wrap`).
+  static const checkWash = Color(0xFFF5D8D1);
+  static const iconWash = Color(0xFFFFF0ED);
 }
 
 abstract final class HFRadius {
@@ -48,10 +78,21 @@ abstract final class HFShadows {
   ];
 }
 
-/// Spec 5.9 names Anton for display headings and Poppins 300-800 for UI text.
-/// The font files are not in the repo yet, so these family names resolve to
-/// the platform default until the assets are added to pubspec.yaml.
+/// Spec 5.9 names Anton for display headings and Poppins for UI text. Both
+/// are bundled under `assets/fonts/` and registered in `pubspec.yaml`; Anton
+/// ships in one weight only, so never ask it for a bold.
 abstract final class HFFonts {
   static const display = 'Anton';
   static const body = 'Poppins';
+}
+
+/// The client's brand artwork, lifted from the supplied HTML screens.
+abstract final class HFAssets {
+  static const logo = 'assets/brand/hellofit_logo.png';
+
+  /// Onboarding heroes, in slide order (pages 02, 03, 04). Named one by
+  /// one rather than indexed out of a list, so the slide table stays const.
+  static const onboardingHero1 = 'assets/onboarding/slide1.jpg';
+  static const onboardingHero2 = 'assets/onboarding/slide2.jpg';
+  static const onboardingHero3 = 'assets/onboarding/slide3.jpg';
 }

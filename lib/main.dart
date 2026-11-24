@@ -6,6 +6,9 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/data/auth_models.dart';
 import 'features/auth/login_screen.dart';
+import 'features/auth/onboarding/onboarding_screen.dart';
+import 'features/auth/register_screen.dart';
+import 'features/auth/splash_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: HelloFitApp()));
@@ -25,8 +28,9 @@ class HelloFitApp extends StatelessWidget {
   }
 }
 
-/// Picks the shell from the auth state (spec 6.1): the role on the token
-/// decides which of the two bottom-navigation bars loads.
+/// The single place that decides which screen is the root. Pages 01-07 are
+/// all reached from here except the OTP step, which the login screen pushes
+/// so that "Edit" and the back gesture mean the same thing.
 class _AuthGate extends ConsumerWidget {
   const _AuthGate();
 
@@ -35,10 +39,11 @@ class _AuthGate extends ConsumerWidget {
     final state = ref.watch(authControllerProvider);
 
     return switch (state) {
-      AuthLoading() => const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
+      AuthLoading() => const SplashScreen(),
+      AuthNeedsOnboarding() => const OnboardingScreen(),
       AuthSignedOut() => const LoginScreen(),
+      AuthNeedsRegistration(:final user) =>
+        RegisterScreen(mobile: user.mobile),
       AuthNeedsModeChoice() => const ModeChooserScreen(),
       AuthSignedIn(:final mode) => mode == AppMode.instructor
           ? const ScaffoldWithBottomNav(

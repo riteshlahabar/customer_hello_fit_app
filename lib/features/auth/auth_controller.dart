@@ -2,71 +2,66 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_result.dart';
 import '../../core/providers.dart';
+import 'auth_restore.dart';
+import 'auth_state.dart';
 import 'data/auth_models.dart';
 import 'data/auth_repository.dart';
 
-/// Where the app is in the sign-in lifecycle. The router watches this to
-/// decide which shell to show, so navigation never has to be driven
-/// imperatively from a screen.
-sealed class AuthState {
-  const AuthState();
-}
-
-/// Reading stored tokens on launch.
-final class AuthLoading extends AuthState {
-  const AuthLoading();
-}
-
-final class AuthSignedOut extends AuthState {
-  const AuthSignedOut({this.reason});
-
-  /// Set when a session ended unexpectedly, so the UI can explain why.
-  final String? reason;
-}
-
-/// Signed in, with the mode whose shell should load.
-final class AuthSignedIn extends AuthState {
-  const AuthSignedIn({required this.user, required this.mode});
-
-  final AuthUser user;
-  final AppMode mode;
-}
-
-/// Holds both roles and has not yet chosen; the "Continue as" chooser shows.
-final class AuthNeedsModeChoice extends AuthState {
-  const AuthNeedsModeChoice({required this.user});
-
-  final AuthUser user;
-}
+export 'auth_state.dart';
 
 class AuthController extends Notifier<AuthState> {
   @override
   AuthState build() {
-    // A failed refresh anywhere in the app lands here.
+    // The server refusing the refresh token lands here. Nothing else does —
+    // see `auth_restore.dart` for why.
     ref.read(apiClientProvider).onSessionExpired = () {
-      state = const AuthSignedOut(reason: 'Your session expired.');
+      state = const AuthSignedOut(
+        reason: 'Your session has ended. Please sign in again.',
+      );
     };
 
     Future.microtask(_restore);
     return const AuthLoading();
   }
 
-  Future<void> _restore() async {
-    final repo = ref.read(authRepositoryProvider);
+  SessionRestorer get _restorer => ref.read(sessionRestorerProvider);
 
-    // A stored refresh token is not proof of a live session; the first
-    // authenticated call confirms it and the interceptor signs us out if not.
-    state = await repo.hasStoredSession()
-        ? const AuthSignedOut()
-        : const AuthSignedOut();
+  /// Decides the first screen: the slides, the login screen, the registration
+  /// form, or straight into the app — from the keystore, without waiting on
+  /// the network.
+  Future<void> _restore() async {
+    state = await _restorer.firstState();
+
+    final user = switch (state) {
+      AuthSignedIn(:final user) => user,
+      AuthNeedsRegistration(:final user) => user,
+      _ => null,
+    };
+    // Nothing was restored; the login screen is already showing.
+    if (user == null) return;
+
+    // The app is drawn and usable. Confirm the snapshot against the API
+    // behind it, and correct the screen only if an answer actually came
+    // back: null means the check could not be made, and a connection fault
+    // must never cost a signed-in customer another OTP.
+    final corrected = await _restorer.reconcile(user);
+
+    if (corrected != null && state is! AuthSignedOut) state = corrected;
+  }
+
+  /// Page 02-04 finished, or skipped: never shown again on this device.
+  Future<void> completeOnboarding() async {
+    await ref.read(onboardingStoreProvider).markSeen();
+    state = const AuthSignedOut();
   }
 
   Future<ApiResult<OtpSendResult>> sendOtp(String mobile) {
     return ref.read(authRepositoryProvider).sendOtp(mobile);
   }
 
-  /// Verifies the code and routes to the right shell, honouring a previously
-  /// remembered mode for dual-role accounts.
+  /// Verifies the code and routes onward, honouring a previously remembered
+  /// mode for dual-role accounts. A brand-new account lands on page 07: the
+  /// backend creates the profile row here with an empty name.
   Future<ApiResult<AuthSession>> verifyOtp({
     required String mobile,
     required String code,
@@ -79,25 +74,54 @@ class AuthController extends Notifier<AuthState> {
         );
 
     if (result case ApiSuccess<AuthSession>(:final data)) {
-      final user = data.user;
-
-      if (user.needsModeChoice) {
-        final remembered = await ref.read(tokenStoreProvider).readActiveMode();
-
-        state = remembered == null
-            ? AuthNeedsModeChoice(user: user)
-            : AuthSignedIn(
-                user: user,
-                mode: remembered == AppMode.instructor.name
-                    ? AppMode.instructor
-                    : AppMode.customer,
-              );
-      } else {
-        state = AuthSignedIn(user: user, mode: user.defaultMode);
-      }
+      state = await _afterVerify(data.user);
     }
 
     return result;
+  }
+
+  Future<AuthState> _afterVerify(AuthUser user) async {
+    // Remembered either way, so no later launch asks for a second OTP. The
+    // restored session opens the Customer shell: this is the customer app,
+    // and `shells.dart`'s Instructor half is leftover, not the target.
+    if (user.needsModeChoice) {
+      final remembered = await ref.read(tokenStoreProvider).readActiveMode();
+
+      if (remembered == AppMode.instructor.name) {
+        await _restorer.remember(user, profileComplete: true);
+        return AuthSignedIn(user: user, mode: AppMode.instructor);
+      }
+      if (remembered == null) return AuthNeedsModeChoice(user: user);
+    }
+
+    if (user.defaultMode == AppMode.instructor) {
+      await _restorer.remember(user, profileComplete: true);
+      return AuthSignedIn(user: user, mode: AppMode.instructor);
+    }
+
+    // The profile says whether the name was ever filled in; a new account's
+    // is blank, which is page 07. A complete one goes straight to the home
+    // screen — the OTP screen is the last gate there is.
+    final profile = await ref.read(profileRepositoryProvider).profile();
+    final complete = switch (profile) {
+      ApiSuccess(:final data) => data.isComplete,
+      // The sign-in worked and the profile read did not. Letting them in is
+      // the long-standing behaviour; the snapshot matches it so a relaunch
+      // does not disagree with itself.
+      ApiFailure() => true,
+    };
+
+    await _restorer.remember(user, profileComplete: complete);
+    return _restorer.stateFor(user, complete);
+  }
+
+  /// Page 07 saved a name, so the account is now usable: straight to the home
+  /// screen, and remembered so no later launch asks again.
+  Future<void> completeRegistration() async {
+    if (state case AuthNeedsRegistration(:final user)) {
+      await _restorer.remember(user, profileComplete: true);
+      state = AuthSignedIn(user: user, mode: AppMode.customer);
+    }
   }
 
   /// Chooses or switches mode and remembers it for next launch.
@@ -115,6 +139,7 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> logout() async {
     await ref.read(authRepositoryProvider).logout();
+    // Straight to the login screen, never back through onboarding.
     state = const AuthSignedOut();
   }
 }

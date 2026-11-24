@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../storage/token_store.dart';
 import 'api_result.dart';
 import 'network_errors.dart';
+import 'token_refresher.dart';
 
 /// Single Dio instance with the interceptors every request needs: bearer
 /// token, one-shot refresh rotation on 401, and envelope-aware error mapping.
@@ -22,6 +23,7 @@ class ApiClient {
             validateStatus: (_) => true,
           ),
         ) {
+    _refresher = TokenRefresher(dio: _dio, tokenStore: tokenStore);
     _dio.interceptors.add(
       InterceptorsWrapper(onRequest: _attachToken),
     );
@@ -37,8 +39,8 @@ class ApiClient {
   /// Set by the auth layer so a failed refresh can drop the session.
   void Function()? onSessionExpired;
 
-  /// Guards against a burst of 401s each firing its own refresh.
-  Future<bool>? _refreshInFlight;
+  /// Owns the one-shot rotation and its single-flight guard.
+  late final TokenRefresher _refresher;
 
   Future<void> _attachToken(
     RequestOptions options,
@@ -137,13 +139,18 @@ class ApiClient {
       final error = (body['error'] as Map<String, dynamic>?) ?? const {};
       final code = (error['code'] as String?) ?? ApiErrorCode.unknown;
 
-      // An expired access token is recoverable exactly once per request.
+      // An expired access token is recoverable exactly once per request. A
+      // renewal that could not be *attempted* leaves the session alone: only
+      // the server refusing the refresh token signs anybody out.
       if (!isRetry && code == ApiErrorCode.tokenExpired) {
-        final refreshed = await _refreshOnce();
-        if (refreshed) {
-          return _send(request, parse, isRetry: true);
+        switch (await _refresher.refreshOnce()) {
+          case RefreshOutcome.renewed:
+            return _send(request, parse, isRetry: true);
+          case RefreshOutcome.refused:
+            onSessionExpired?.call();
+          case RefreshOutcome.unavailable:
+            break;
         }
-        onSessionExpired?.call();
       }
 
       if (code == ApiErrorCode.tokenInvalid ||
@@ -165,36 +172,4 @@ class ApiClient {
     }
   }
 
-  /// Rotates the refresh token. Concurrent callers await the same attempt so
-  /// a replayed rotation never revokes the chain (the backend treats reuse as
-  /// a stolen token).
-  Future<bool> _refreshOnce() {
-    return _refreshInFlight ??= _performRefresh().whenComplete(() {
-      _refreshInFlight = null;
-    });
-  }
-
-  Future<bool> _performRefresh() async {
-    final refreshToken = await _tokenStore.readRefreshToken();
-    if (refreshToken == null) return false;
-
-    final response = await _dio.post(
-      '/auth/refresh',
-      data: {'refreshToken': refreshToken},
-      options: Options(extra: {'skipAuth': true}),
-    );
-
-    final body = response.data;
-    if (body is! Map<String, dynamic> || body['success'] != true) {
-      await _tokenStore.clear();
-      return false;
-    }
-
-    final data = body['data'] as Map<String, dynamic>;
-    await _tokenStore.saveTokens(
-      accessToken: data['accessToken'] as String,
-      refreshToken: data['refreshToken'] as String,
-    );
-    return true;
-  }
 }

@@ -11,13 +11,14 @@ session working in this directory was getting that stale text. Keep this file a 
 
 The one rule that matters most here, repeated because this is the directory it governs:
 
-> **Do not build or design UI yet.** Don't invent screens, layouts, component libraries or
-> visual styling, and don't touch this directory beyond what the backend needs. The client
-> is supplying the designs. When they land, build against the API that already exists —
-> not the reverse.
+> **Convert the client's designs; never invent a screen.** The designs landed on
+> 04-11-2026 — 57 HTML files in `../Customer app screen/`. On 23-11-2026 the client ruled:
+> **build bucket A only (38 screens), and write no new backend.** The mapping, the 15
+> screens that are not to be built, and the design elements that have no API behind them
+> are in `../state/frontend/customer-app-screens.md` — read it before starting a screen.
 
 **This folder is the customer app only** (renamed from `customer_instructor_app/` on
-7 Nov 2026); the instructor app is `../instructor_app/`. `lib/app/shells.dart` still holds
+7 Nov 2026); the trainer app is `../trainer_app/`. `lib/app/shells.dart` still holds
 the old dual-shell code and the "Continue as" chooser — leftover, not the target.
 `pubspec.yaml`, the `.iml` and `README.md` still carry the old package name.
 

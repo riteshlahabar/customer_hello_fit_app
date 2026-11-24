@@ -9,6 +9,7 @@ import '../../../core/network/json.dart';
 class CustomerProfile {
   const CustomerProfile({
     required this.id,
+    required this.userId,
     required this.name,
     required this.gender,
     required this.mobile,
@@ -28,6 +29,7 @@ class CustomerProfile {
 
     return CustomerProfile(
       id: asString(json['id']),
+      userId: asString(json['userId']),
       name: asString(json['name']),
       gender: asString(json['gender'], fallback: 'UNDISCLOSED'),
       mobile: asString(user['mobile']),
@@ -43,7 +45,13 @@ class CustomerProfile {
     );
   }
 
+  /// The CustomerProfile row's own id.
   final String id;
+
+  /// The User row behind it — the subject of the access token, and what a
+  /// restored session rebuilds its identity from.
+  final String userId;
+
   final String name;
 
   /// MALE, FEMALE, OTHER or UNDISCLOSED — the backend enum.
