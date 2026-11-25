@@ -1,4 +1,4 @@
-package com.example.customer_instructor_app
+package com.hellofit.customerapp
 
 import io.flutter.embedding.android.FlutterActivity
 

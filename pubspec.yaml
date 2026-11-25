@@ -50,6 +50,29 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  # Generates the launcher icons from the client's logo. A build-time tool only
+  # — it writes the mipmaps and the iOS appiconset and is never imported, so it
+  # adds nothing to the shipped app. Re-run after changing the artwork:
+  #   dart run flutter_launcher_icons
+  flutter_launcher_icons: ^0.14.4
+
+# Launcher icon, generated from the client's supplied logo (24-11-2026).
+#
+# The artwork is a 2048x2048 orange badge with transparent corners. Its ground
+# samples **#E53D29** — close to, but not the same as, the brand token
+# #E33E29 — so the adaptive background is set to the artwork's own value, not
+# the token: a mismatch of two shades shows as a seam ring on Android 8+.
+# iOS forbids alpha in an app icon, so the transparent corners are filled with
+# that same orange rather than the tool's default white.
+flutter_launcher_icons:
+  image_path: "assets/brand/hellofit_logo.png"
+  android: true
+  adaptive_icon_background: "#E53D29"
+  adaptive_icon_foreground: "assets/brand/hellofit_logo.png"
+  ios: true
+  remove_alpha_ios: true
+  background_color_ios: "#E53D29"
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 # The following section is specific to Flutter packages.

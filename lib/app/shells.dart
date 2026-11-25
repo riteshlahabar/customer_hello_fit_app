@@ -15,28 +15,11 @@ class ShellTab {
   final Widget body;
 }
 
-/// The five Customer tabs (spec 6.2).
-const customerTabs = <ShellTab>[
-  ShellTab(label: 'Home', icon: Icons.home_outlined, body: _Placeholder('Home')),
-  ShellTab(label: 'Book', icon: Icons.search, body: _Placeholder('Book')),
-  ShellTab(
-    label: 'Bookings',
-    icon: Icons.calendar_today_outlined,
-    body: _Placeholder('Bookings'),
-  ),
-  ShellTab(
-    label: 'Progress',
-    icon: Icons.insights_outlined,
-    body: _Placeholder('Progress'),
-  ),
-  ShellTab(
-    label: 'Profile',
-    icon: Icons.person_outline,
-    body: _Placeholder('Profile'),
-  ),
-];
-
 /// The five Instructor tabs (spec 6.3).
+///
+/// The Customer list that used to sit here is gone: page 09's nav is
+/// `CustomerTab` in `customer_tab.dart`, and this one's fourth tab was
+/// "Progress", which pointed at the out-of-scope workout module.
 const instructorTabs = <ShellTab>[
   ShellTab(label: 'Today', icon: Icons.wb_sunny_outlined, body: _Placeholder('Today')),
   ShellTab(

@@ -31,7 +31,7 @@ class ApiClient {
 
   /// 10.0.2.2 is the host machine as seen from the Android emulator;
   /// localhost there would be the emulator itself.
-  static const defaultBaseUrl = 'http://10.0.2.2:3000/api/v1';
+  static const defaultBaseUrl = 'https://hellofit.turnkeyinfotech.live/api/v1';
 
   final Dio _dio;
   final TokenStore _tokenStore;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'app/customer_shell.dart';
 import 'app/shells.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_controller.dart';
@@ -45,15 +46,14 @@ class _AuthGate extends ConsumerWidget {
       AuthNeedsRegistration(:final user) =>
         RegisterScreen(mobile: user.mobile),
       AuthNeedsModeChoice() => const ModeChooserScreen(),
+      // The customer shell is page 09's design; the instructor half is
+      // Phase-1 leftover in `shells.dart` and is not this app's target.
       AuthSignedIn(:final mode) => mode == AppMode.instructor
           ? const ScaffoldWithBottomNav(
               tabs: instructorTabs,
               title: 'HelloFit Teacher',
             )
-          : const ScaffoldWithBottomNav(
-              tabs: customerTabs,
-              title: 'HelloFit',
-            ),
+          : const CustomerShell(),
     };
   }
 }
